@@ -1,1 +1,1 @@
-pip install requests pypdf io sys re
+pip install requests pypdf io sys re tqdm

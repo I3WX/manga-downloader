@@ -1,10 +1,12 @@
 import os
+from tkinter.ttk import Progressbar
 import requests
 from pypdf import PdfWriter, PdfReader, PageObject
 from PIL import Image
 import io
 import sys
 import re
+from tqdm import tqdm
 
 MANGADEX_API = "https://api.mangadex.org"
 API_KEY = "personal-client-376e5621-9f8e-4282-ae1e-a7960bbecba5-ca646298"
@@ -95,13 +97,13 @@ def get_images(chapter_id):
         print(f"Other error occurred: {err}")
 
 
-def save_images_to_pdf(images, pdf_name, title):
+def save_images_to_pdf(images, pdf_path, title, progress_bar):
     pdf_writer = PdfWriter()
 
     if not os.path.exists(title):
         os.makedirs(title)
 
-    pdf_path = os.path.join(title, f"{pdf_name}.pdf")
+    pdf_path = os.path.join(title, f"{pdf_path}.pdf")
 
     for url in images:
         try:
@@ -127,12 +129,14 @@ def save_images_to_pdf(images, pdf_name, title):
             # Add the page to the writer
             pdf_writer.add_page(page)
 
+            progress_bar.update(1)
+
         except requests.exceptions.HTTPError as http_err:
             print(f"HTTP error occurred: {http_err}")
         except Exception as err:
             print(f"Other error occurred: {err}")
 
-    with open(pdf_name, "wb") as output_pdf:
+    with open(pdf_path, "wb") as output_pdf:
         pdf_writer.write(output_pdf)
 
 
@@ -199,7 +203,9 @@ def main():
         chapter_id = chapter_ids[i - 1]["id"]
         print(f"Downloading Chapter {i}...")
         images = get_images(chapter_id)
-        save_images_to_pdf(images, f"Chapter_{i}", title)
+        progress_bar = tqdm(total=len(images), desc=f"Chapter {i}", unit="image")  # type: ignore
+        save_images_to_pdf(images, f"Chapter_{i}", title, progress_bar)
+        progress_bar.close()
         print(f"Chapter {i} saved as PDF.")
 
 
