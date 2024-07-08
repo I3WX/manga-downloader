@@ -77,7 +77,6 @@ Ensure you have an active internet connection.
 Verify the manga title is correct.
 Check if you have the required permissions to create files in the directory.
 Acknowledgments
-MangaDex for providing the API used in this script.
 This project is inspired by the mangapark-dl project. Special thanks to the developers of that project for their pioneering work.
 
 License
