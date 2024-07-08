@@ -144,6 +144,7 @@ def save_images_to_pdf(images, pdf_path, title, progress_bar):
     """
     pdf_writer = PdfWriter()
 
+    # Create directory if it does not exist
     if not os.path.exists(title):
         os.makedirs(title)
 
@@ -153,13 +154,22 @@ def save_images_to_pdf(images, pdf_path, title, progress_bar):
         try:
             response = requests.get(url)
             response.raise_for_status()
+
+            # Open the image and ensure it's valid
             image = Image.open(io.BytesIO(response.content))
 
-            width, height = image.size
+            # Convert image to RGB mode if it's not
+            if image.mode != "RGB":
+                image = image.convert("RGB")
 
-            page = PageObject.create_blank_page(width=width, height=height)
-            page.merge_page(PdfReader(io.BytesIO(image.tobytes())).pages[0])
+            # Save the image to a PDF in memory
+            image_pdf = io.BytesIO()
+            image.save(image_pdf, format="PDF")
+            image_pdf.seek(0)
 
+            # Read the PDF from memory and merge with the PdfWriter
+            image_reader = PdfReader(image_pdf)
+            page = image_reader.pages[0]
             pdf_writer.add_page(page)
 
             progress_bar.update(1)
