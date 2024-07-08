@@ -1,5 +1,4 @@
 import os
-from tkinter.ttk import Progressbar
 import requests
 from pypdf import PdfWriter, PdfReader, PageObject
 from PIL import Image
@@ -8,11 +7,22 @@ import sys
 import re
 from tqdm import tqdm
 
+# Constants
 MANGADEX_API = "https://api.mangadex.org"
 API_KEY = "personal-client-376e5621-9f8e-4282-ae1e-a7960bbecba5-ca646298"
 
 
+# Function to search for manga by title
 def search_manga(title):
+    """
+    Search for manga on MangaDex by title.
+
+    Args:
+        title (str): The title of the manga to search for.
+
+    Returns:
+        str: Manga ID if found, None otherwise.
+    """
     headers = {"Authorization": f"Bearer {API_KEY}"}
     params = {"title": title}
     try:
@@ -24,7 +34,6 @@ def search_manga(title):
             manga_id = manga["id"]
             manga_titles = manga["attributes"]["title"]
 
-            # Compare the provided title with all available titles in different languages
             for lang, manga_title in manga_titles.items():
                 if manga_title.lower().strip() == title.lower().strip():
                     return manga_id
@@ -39,20 +48,25 @@ def search_manga(title):
         return None
 
 
+# Function to retrieve manga title by manga ID
 def get_manga_title(manga_id):
+    """
+    Retrieve manga title from MangaDex API using manga ID.
 
-    # Endpoint for getting manga details
+    Args:
+        manga_id (str): The ID of the manga.
+
+    Returns:
+        str: Title of the manga if found, otherwise an error message.
+    """
     endpoint = f"{MANGADEX_API}/manga/{manga_id}"
 
     try:
-        # Make a GET request to the MangaDex API
         response = requests.get(endpoint)
-        response.raise_for_status()  # Raise an HTTPError for bad responses
+        response.raise_for_status()
 
-        # Parse the JSON response
         manga_data = response.json()
 
-        # Extract the title from the response
         if "data" in manga_data and "attributes" in manga_data["data"]:
             title = manga_data["data"]["attributes"]["title"]["en"]
             return title
@@ -63,7 +77,17 @@ def get_manga_title(manga_id):
         return f"An error occurred: {e}"
 
 
+# Function to retrieve chapters of a manga by manga ID
 def get_chapters(manga_id):
+    """
+    Retrieve chapters of a manga from MangaDex API using manga ID.
+
+    Args:
+        manga_id (str): The ID of the manga.
+
+    Returns:
+        list: List of chapters data if successful, None otherwise.
+    """
     try:
         headers = {"Authorization": f"Bearer {API_KEY}"}
         params = {"manga": manga_id, "translatedLanguage[]": "en"}
@@ -79,7 +103,17 @@ def get_chapters(manga_id):
         print(f"Other error occurred: {err}")
 
 
+# Function to retrieve image URLs of a chapter by chapter ID
 def get_images(chapter_id):
+    """
+    Retrieve image URLs of a chapter from MangaDex API using chapter ID.
+
+    Args:
+        chapter_id (str): The ID of the chapter.
+
+    Returns:
+        list: List of image URLs if successful, None otherwise.
+    """
     try:
         headers = {"Authorization": f"Bearer {API_KEY}"}
         response = requests.get(
@@ -97,7 +131,17 @@ def get_images(chapter_id):
         print(f"Other error occurred: {err}")
 
 
+# Function to save images to PDF
 def save_images_to_pdf(images, pdf_path, title, progress_bar):
+    """
+    Save images from URLs to a PDF file.
+
+    Args:
+        images (list): List of image URLs.
+        pdf_path (str): Path to save the PDF file.
+        title (str): Title of the manga.
+        progress_bar (tqdm): Progress bar instance for tracking progress.
+    """
     pdf_writer = PdfWriter()
 
     if not os.path.exists(title):
@@ -111,22 +155,11 @@ def save_images_to_pdf(images, pdf_path, title, progress_bar):
             response.raise_for_status()
             image = Image.open(io.BytesIO(response.content))
 
-            # Get the dimensions of the image
             width, height = image.size
 
-            # Create a page with the same size as the image
             page = PageObject.create_blank_page(width=width, height=height)
+            page.merge_page(PdfReader(io.BytesIO(image.tobytes())).pages[0])
 
-            # Convert image to PDF and read it
-            image_pdf = io.BytesIO()
-            image.save(image_pdf, format="PDF")
-            image_pdf.seek(0)
-            image_reader = PdfReader(image_pdf)
-
-            # Merge the image PDF onto the blank page
-            page.merge_page(image_reader.pages[0])
-
-            # Add the page to the writer
             pdf_writer.add_page(page)
 
             progress_bar.update(1)
@@ -140,7 +173,14 @@ def save_images_to_pdf(images, pdf_path, title, progress_bar):
         pdf_writer.write(output_pdf)
 
 
+# Function to parse command-line arguments and validate input
 def getData():
+    """
+    Parse command-line arguments and validate input.
+
+    Returns:
+        tuple: Tuple containing title (str), startChapter (int), and endChapter (int).
+    """
     if len(sys.argv) < 2:
         print("Usage: python try.py [title] [-c num1 num2]")
         sys.exit(1)
@@ -151,16 +191,15 @@ def getData():
         sys.exit(0)
 
     if len(sys.argv) >= 5:
-        title_arg = sys.argv[1]  # Title (e.g., '[I want to eat your pancreas]')
-        flag = sys.argv[2] if len(sys.argv) > 2 else None  # The flag (should be '-c')
-        startChapter = sys.argv[3] if len(sys.argv) > 3 else 1  # First number (e.g., 1)
-        endChapter = (
-            sys.argv[4] if len(sys.argv) > 4 else ""
-        )  # Second number (e.g., 25)
+        title_arg = sys.argv[1]
+        flag = sys.argv[2] if len(sys.argv) > 2 else None
+        startChapter = sys.argv[3] if len(sys.argv) > 3 else 1
+        endChapter = sys.argv[4] if len(sys.argv) > 4 else ""
 
         if flag != "-c":
             print("Invalid flag! Use '-c'.")
             sys.exit(1)
+
     title_pattern = r"^\[(.+)\]$"
     match = re.match(title_pattern, title_arg)
     if not match:
@@ -179,7 +218,11 @@ def getData():
     return title, startChapter, endChapter
 
 
+# Main function to orchestrate the download process
 def main():
+    """
+    Main function to orchestrate the manga download process.
+    """
     title, start_chapter, end_chapter = getData()
     manga_id = search_manga(title)
     if manga_id is None:
