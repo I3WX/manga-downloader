@@ -1,3 +1,4 @@
+import os
 import requests
 from pypdf import PdfWriter, PdfReader, PageObject
 from PIL import Image
@@ -15,13 +16,49 @@ def search_manga(title):
     try:
         response = requests.get(f"{MANGADEX_API}/manga", headers=headers, params=params)
         response.raise_for_status()
-        data = response.json()
-        manga_id = data["data"][0]["id"] if data["data"] else None
-        return manga_id
+        data = response.json()["data"]
+
+        for manga in data:
+            manga_id = manga["id"]
+            manga_titles = manga["attributes"]["title"]
+
+            # Compare the provided title with all available titles in different languages
+            for lang, manga_title in manga_titles.items():
+                if manga_title.lower().strip() == title.lower().strip():
+                    return manga_id
+
+        print(f"Manga '{title}' not found.")
+        return None
+
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
     except Exception as err:
         print(f"Other error occurred: {err}")
+        return None
+
+
+def get_manga_title(manga_id):
+
+    # Endpoint for getting manga details
+    endpoint = f"{MANGADEX_API}/manga/{manga_id}"
+
+    try:
+        # Make a GET request to the MangaDex API
+        response = requests.get(endpoint)
+        response.raise_for_status()  # Raise an HTTPError for bad responses
+
+        # Parse the JSON response
+        manga_data = response.json()
+
+        # Extract the title from the response
+        if "data" in manga_data and "attributes" in manga_data["data"]:
+            title = manga_data["data"]["attributes"]["title"]["en"]
+            return title
+        else:
+            return "Title not found in the response"
+
+    except requests.exceptions.RequestException as e:
+        return f"An error occurred: {e}"
 
 
 def get_chapters(manga_id):
@@ -58,8 +95,13 @@ def get_images(chapter_id):
         print(f"Other error occurred: {err}")
 
 
-def save_images_to_pdf(images, pdf_name):
+def save_images_to_pdf(images, pdf_name, title):
     pdf_writer = PdfWriter()
+
+    if not os.path.exists(title):
+        os.makedirs(title)
+
+    pdf_path = os.path.join(title, f"{pdf_name}.pdf")
 
     for url in images:
         try:
@@ -90,7 +132,7 @@ def save_images_to_pdf(images, pdf_name):
         except Exception as err:
             print(f"Other error occurred: {err}")
 
-    with open(pdf_name + ".pdf", "wb") as output_pdf:
+    with open(pdf_name, "wb") as output_pdf:
         pdf_writer.write(output_pdf)
 
 
@@ -136,6 +178,9 @@ def getData():
 def main():
     title, start_chapter, end_chapter = getData()
     manga_id = search_manga(title)
+    if manga_id is None:
+        print(f"Could not find manga with title '{title}'.")
+        return
     chapter_ids = get_chapters(manga_id)
 
     if not chapter_ids:
@@ -154,7 +199,7 @@ def main():
         chapter_id = chapter_ids[i - 1]["id"]
         print(f"Downloading Chapter {i}...")
         images = get_images(chapter_id)
-        save_images_to_pdf(images, f"Chapter_{i}")
+        save_images_to_pdf(images, f"Chapter_{i}", title)
         print(f"Chapter {i} saved as PDF.")
 
 
