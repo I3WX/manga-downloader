@@ -47,7 +47,7 @@ pip install requests pypdf tqdm pillow
 1. **Clone the Repository**:
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/I3WX/manga-downloader.git
    cd manga-downloader
    ```
 
@@ -112,12 +112,3 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 This tool is for educational purposes only. Please respect the terms of service of MangaDex and support the manga authors by purchasing official releases.
 ```
 
-### Key Improvements:
-- **Headers**: Used for each section for clear separation and hierarchy.
-- **Code Blocks**: Used for commands to enhance readability.
-- **Lists**: Used for features and requirements to present them clearly.
-- **Example Section**: Added a practical example to illustrate usage.
-- **Directory Structure**: Provided as a formatted tree for clarity.
-- **Links**: Used for referring to other projects or files, improving navigation.
-
-Replace `<repository-url>` with the URL of your GitHub repository. This format ensures the `README.md` is easy to follow and visually appealing when viewed on GitHub or other Markdown-supported platforms.
