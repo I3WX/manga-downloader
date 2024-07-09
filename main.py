@@ -1,4 +1,6 @@
 import os
+from numpy import imag
+from pyautogui import resolution
 import requests
 from pypdf import PdfWriter, PdfReader, PageObject
 from PIL import Image
@@ -14,15 +16,6 @@ API_KEY = "personal-client-376e5621-9f8e-4282-ae1e-a7960bbecba5-ca646298"
 
 # Function to search for manga by title
 def search_manga(title):
-    """
-    Search for manga on MangaDex by title.
-
-    Args:
-        title (str): The title of the manga to search for.
-
-    Returns:
-        str: Manga ID if found, None otherwise.
-    """
     headers = {"Authorization": f"Bearer {API_KEY}"}
     params = {"title": title}
     try:
@@ -50,21 +43,10 @@ def search_manga(title):
 
 # Function to retrieve manga title by manga ID
 def get_manga_title(manga_id):
-    """
-    Retrieve manga title from MangaDex API using manga ID.
-
-    Args:
-        manga_id (str): The ID of the manga.
-
-    Returns:
-        str: Title of the manga if found, otherwise an error message.
-    """
     endpoint = f"{MANGADEX_API}/manga/{manga_id}"
-
     try:
         response = requests.get(endpoint)
         response.raise_for_status()
-
         manga_data = response.json()
 
         if "data" in manga_data and "attributes" in manga_data["data"]:
@@ -79,15 +61,6 @@ def get_manga_title(manga_id):
 
 # Function to retrieve chapters of a manga by manga ID
 def get_chapters(manga_id):
-    """
-    Retrieve chapters of a manga from MangaDex API using manga ID.
-
-    Args:
-        manga_id (str): The ID of the manga.
-
-    Returns:
-        list: List of chapters data if successful, None otherwise.
-    """
     try:
         headers = {"Authorization": f"Bearer {API_KEY}"}
         params = {"manga": manga_id, "translatedLanguage[]": "en"}
@@ -105,15 +78,6 @@ def get_chapters(manga_id):
 
 # Function to retrieve image URLs of a chapter by chapter ID
 def get_images(chapter_id):
-    """
-    Retrieve image URLs of a chapter from MangaDex API using chapter ID.
-
-    Args:
-        chapter_id (str): The ID of the chapter.
-
-    Returns:
-        list: List of image URLs if successful, None otherwise.
-    """
     try:
         headers = {"Authorization": f"Bearer {API_KEY}"}
         response = requests.get(
@@ -132,16 +96,7 @@ def get_images(chapter_id):
 
 
 # Function to save images to PDF
-def save_images_to_pdf(images, pdf_path, title, progress_bar):
-    """
-    Save images from URLs to a PDF file.
-
-    Args:
-        images (list): List of image URLs.
-        pdf_path (str): Path to save the PDF file.
-        title (str): Title of the manga.
-        progress_bar (tqdm): Progress bar instance for tracking progress.
-    """
+def save_images_to_pdf(images, pdf_path, title, progress_bar, low_resolution=False):
     pdf_writer = PdfWriter()
 
     # Create directory if it does not exist
@@ -161,6 +116,13 @@ def save_images_to_pdf(images, pdf_path, title, progress_bar):
             # Convert image to RGB mode if it's not
             if image.mode != "RGB":
                 image = image.convert("RGB")
+
+            if low_resolution:
+                width, height = image.size
+                width = width // 2
+                height = height // 2
+                resized_image = image.resize((int(width), int(height)))
+                image = resized_image
 
             # Save the image to a PDF in memory
             image_pdf = io.BytesIO()
@@ -183,81 +145,89 @@ def save_images_to_pdf(images, pdf_path, title, progress_bar):
         pdf_writer.write(output_pdf)
 
 
-# Function to parse command-line arguments and validate input
-def getData():
-    """
-    Parse command-line arguments and validate input.
-
-    Returns:
-        tuple: Tuple containing title (str), startChapter (int), and endChapter (int).
-    """
-    if len(sys.argv) < 2:
-        print("Usage: python try.py [title] [-c num1 num2]")
-        sys.exit(1)
-
-    if sys.argv[1] == "-h":
-        print("Usage: python try.py [title] [-c num1 num2]")
-        print("-h: Display this help message")
-        sys.exit(0)
-
-    if len(sys.argv) >= 5:
-        title_arg = sys.argv[1]
-        flag = sys.argv[2] if len(sys.argv) > 2 else None
-        startChapter = sys.argv[3] if len(sys.argv) > 3 else 1
-        endChapter = sys.argv[4] if len(sys.argv) > 4 else ""
-
-        if flag != "-c":
-            print("Invalid flag! Use '-c'.")
-            sys.exit(1)
-
-    title_pattern = r"^\[(.+)\]$"
-    match = re.match(title_pattern, title_arg)
-    if not match:
-        print("Title should be enclosed in square brackets, e.g., [title].")
-        sys.exit(1)
-
-    title = match.group(1)
+# Function to get available chapters for a manga
+def get_available_chapters(manga_id):
+    url = f"{MANGADEX_API}/manga/{manga_id}/feed"
+    headers = {"Authorization": f"Bearer {API_KEY}"}
+    params = {
+        "translatedLanguage[]": ["en"],  # Use array format
+        "order[chapter]": "asc",  # Order by chapter ascending
+        "limit": 500,  # Limit to avoid pagination issues
+    }
 
     try:
-        startChapter = int(startChapter)
-        endChapter = int(endChapter)
-    except ValueError:
-        print("start and end of chapter should be integers.")
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        data = response.json()
+        chapters = data["data"]
+        unique_chapters = {}  # To store unique chapters
+
+        for chapter in chapters:
+            chapter_num = chapter["attributes"]["chapter"]
+            if chapter_num not in unique_chapters:
+                unique_chapters[chapter_num] = chapter
+
+        for chapter_num, chapter in sorted(
+            unique_chapters.items(), key=lambda x: float(x[0])
+        ):
+            print(
+                f"Chapter {chapter['attributes']['chapter']}: {chapter['attributes']['title']}"
+            )
+
+        return list(unique_chapters.values())
+    except requests.exceptions.HTTPError as http_err:
+        print(f"HTTP error occurred: {http_err}")
+    except Exception as err:
+        print(f"Other error occurred: {err}")
+
+
+# Function to parse command-line arguments and validate input
+def getData():
+    title = str(input("Enter title of manga: "))
+    mangaId = search_manga(title)
+
+    if not mangaId:
+        print(f"Manga '{title}' not found.")
         sys.exit(1)
 
-    return title, startChapter, endChapter
+    chapters = get_available_chapters(mangaId)
+
+    startChapter = int(input("Enter chapter number to start download: "))
+    endChapter = int(input("Enter chapter number to end download: "))
+
+    resolution = input("Want lower resolution image(y/n): ").lower()
+
+    if resolution == "y":
+        lower_resolution = True
+    elif resolution == "n":
+        lower_resolution = False
+    else:
+        print("Choose resolution only between y/n.")
+        sys.exit(1)
+
+    return title, mangaId, startChapter, endChapter, lower_resolution, chapters
 
 
 # Main function to orchestrate the download process
 def main():
-    """
-    Main function to orchestrate the manga download process.
-    """
-    title, start_chapter, end_chapter = getData()
-    manga_id = search_manga(title)
-    if manga_id is None:
-        print(f"Could not find manga with title '{title}'.")
-        return
-    chapter_ids = get_chapters(manga_id)
+    title, manga_id, start_chapter, end_chapter, lower_resolution, chapters = getData()
 
-    if not chapter_ids:
-        print(f"No chapters found for in database '{title}'.")
+    if not chapters:
+        print(f"No chapters found for '{title}'.")
         return
 
-    if (
-        start_chapter < 1
-        or end_chapter < start_chapter
-        or end_chapter > len(chapter_ids)
-    ):
+    if start_chapter < 1 or end_chapter < start_chapter or end_chapter > len(chapters):
         print("Invalid chapter range.")
         return
 
     for i in range(start_chapter, end_chapter + 1):
-        chapter_id = chapter_ids[i - 1]["id"]
+        chapter_id = chapters[i - 1]["id"]
         print(f"Downloading Chapter {i}...")
         images = get_images(chapter_id)
-        progress_bar = tqdm(total=len(images), desc=f"Chapter {i}", unit="image")  # type: ignore
-        save_images_to_pdf(images, f"Chapter_{i}", title, progress_bar)
+        progress_bar = tqdm(total=len(images), desc=f"Chapter {i}", unit="image")
+        save_images_to_pdf(
+            images, f"Chapter_{i}", title, progress_bar, lower_resolution
+        )
         progress_bar.close()
         print(f"Chapter {i} saved as PDF.")
 
