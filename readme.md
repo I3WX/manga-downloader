@@ -87,13 +87,7 @@ If you encounter issues:
 ## Disclaimer
 
 This tool is for educational purposes only. Please respect MangaDex's terms of service and support manga authors by purchasing official releases.
-```
 
-This revised README:
-1. Presents information in a more logical flow
-2. Removes redundancies
-3. Uses consistent formatting throughout
-4. Provides clearer instructions for installation and usage
-5. Consolidates similar information into concise sections
+## Acknowledgments
 
-Is there anything specific you'd like to add or modify in this version?
+This project is inspired by the [mangapark-dl](https://github.com/tohyongcheng/mangapark-dl.git) project. Special thanks to the developers of that project for their pioneering work.
