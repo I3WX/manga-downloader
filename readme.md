@@ -1,114 +1,99 @@
 
-# Manga Downloader
-
 ```markdown
+# Manga Downloader
 
 ## Project Overview
 
-The **Manga Downloader** is a Python script that allows users to download manga chapters from MangaDex and save them as PDF files. This script searches for a manga by its title, retrieves the chapters within a specified range, and compiles the chapter images into PDFs.
+The **Manga Downloader** is a Python script that allows users to download manga chapters from MangaDex and save them as PDF files. It searches for manga by title, retrieves specified chapters, and compiles the images into PDFs.
 
 ## Features
 
-- **Search Manga by Title**: Search for manga on MangaDex by title.
-- **Retrieve Chapters**: Retrieve chapters for the specified manga.
-- **Download Images**: Download chapter images from MangaDex.
-- **Save to PDF**: Save the downloaded images into PDF format.
+- Search for manga on MangaDex by title
+- Retrieve and download chapter images
+- Compile images into PDF format, one PDF per chapter
+- Option to download lower resolution images to save space
+- Organize downloads in manga-specific directories
 
 ## Requirements
 
-Before running the script, ensure you have the following installed:
-
 - Python 3.x
-- `requests` module
-- `pypdf` module
-- `tqdm` module
-- `Pillow` module
+- Required modules: `requests`, `pypdf`, `tqdm`, `Pillow`
 
 ## Installation
 
-To install the required Python packages, you can use the provided batch file:
+### Option 1: Using the Batch File (Windows)
 
-1. Open a command prompt.
-2. Navigate to the project directory.
-3. Run the batch file to install dependencies:
-
-   ```bash
+1. Open a command prompt
+2. Navigate to the project directory
+3. Run:
+   ```
    installModule.bat
    ```
 
-Alternatively, you can manually install the required modules using pip:
+### Option 2: Manual Installation
+
+Use pip to install the required modules:
 
 ```bash
 pip install requests pypdf tqdm pillow
 ```
 
+Note: The batch file installs `requests`, `pypdf`, and `tqdm`. You may need to install `pillow` separately.
+
 ## Usage
 
-1. **Clone the Repository**:
-
-   ```bash
-   git clone https://github.com/I3WX/manga-downloader.git
-   cd manga-downloader
+1. Run the script:
+   ```
+   python manga_downloader.py
    ```
 
-2. **Run the Script**:
+2. Follow the prompts:
+   - Enter the manga title
+   - Specify start and end chapter numbers
+   - Choose resolution option (y/n for lower resolution)
 
-   ```bash
-   python try.py [title] -c [start_chapter] [end_chapter]
-   ```
-
-   - Replace `[title]` with the title of the manga enclosed in square brackets. For example, `[One Piece]`.
-   - Replace `[start_chapter]` with the starting chapter number.
-   - Replace `[end_chapter]` with the ending chapter number.
-
-3. **Example**:
-
-   ```bash
-   python try.py "[Attack on Titan]" -c 1 5
-   ```
-
-   This command downloads chapters 1 to 5 of "Attack on Titan".
-
-## Script Arguments
-
-- `[title]`: The title of the manga to download, enclosed in square brackets.
-- `-c`: Flag indicating the chapter range.
-- `[start_chapter]`: The starting chapter number.
-- `[end_chapter]`: The ending chapter number.
-
-### Notes
-
-- Ensure that the title is exactly as it appears on MangaDex.
-- The chapter range must be valid and within the available chapters for the manga.
+Example interaction:
+```
+Enter title of manga: One Piece
+Enter chapter number to start download: 1
+Enter chapter number to end download: 5
+Want lower resolution image(y/n): n
+```
 
 ## Directory Structure
 
 ```
 manga-downloader/
 │
-├── try.py               # Main script
-├── installModule.bat    # Batch file to install dependencies
-└── README.md            # This readme file
+├── manga_downloader.py  # Main script
+├── installModule.bat    # Installation batch file
+└── README.md            # This file
 ```
 
 ## Troubleshooting
 
-If you encounter any issues or errors while using the script:
+If you encounter issues:
+- Ensure you have an active internet connection
+- Verify the manga title exists on MangaDex
+- Check for necessary file/directory creation permissions
+- Confirm valid chapter number inputs
 
-- Ensure you have an active internet connection.
-- Verify the manga title is correct.
-- Check if you have the required permissions to create files in the directory.
+## Notes
 
-## Acknowledgments
-
-This project is inspired by the [mangapark-dl](https://github.com/tohyongcheng/mangapark-dl.git) project. Special thanks to the developers of that project for their pioneering work.
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+- The script uses a personal client API key for MangaDex. Be aware of usage limitations.
+- Lower resolution option halves image dimensions, saving storage space.
+- Each manga download creates a new directory for organization.
 
 ## Disclaimer
 
-This tool is for educational purposes only. Please respect the terms of service of MangaDex and support the manga authors by purchasing official releases.
+This tool is for educational purposes only. Please respect MangaDex's terms of service and support manga authors by purchasing official releases.
 ```
 
+This revised README:
+1. Presents information in a more logical flow
+2. Removes redundancies
+3. Uses consistent formatting throughout
+4. Provides clearer instructions for installation and usage
+5. Consolidates similar information into concise sections
+
+Is there anything specific you'd like to add or modify in this version?
