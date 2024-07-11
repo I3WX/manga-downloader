@@ -1,5 +1,5 @@
 
-```markdown
+
 # Manga Downloader
 
 ## Project Overview
