@@ -4,6 +4,7 @@ from pypdf import PdfWriter, PdfReader
 from PIL import Image
 import io
 import sys
+import re
 from tqdm import tqdm
 
 # Constants
@@ -57,47 +58,20 @@ def get_manga_title(manga_id):
 
 
 # Function to retrieve chapters of a manga by manga ID
-def get_available_chapters(manga_id):
-    url = f"{MANGADEX_API}/manga/{manga_id}/aggregate"
-    headers = {"Authorization": f"Bearer {API_KEY}"}
-    params = {
-        "translatedLanguage[]": ["en"],
-    }
-
+def get_chapters(manga_id):
     try:
-        response = requests.get(url, headers=headers, params=params)
+        headers = {"Authorization": f"Bearer {API_KEY}"}
+        params = {"manga": manga_id, "translatedLanguage[]": "en"}
+        response = requests.get(
+            f"{MANGADEX_API}/chapter", headers=headers, params=params
+        )
         response.raise_for_status()
         data = response.json()
-
-        print("Raw API response:")
-        print(data)
-
-        all_chapters = []
-
-        for volume_id, volume_data in data["volumes"].items():
-            print(f"Volume {volume_id}:")
-            for chapter_id, chapter_data in volume_data["chapters"].items():
-                print(
-                    f"  Chapter {chapter_data['chapter']}: {chapter_data.get('title', 'No Title')}"
-                )
-                all_chapters.append(
-                    {
-                        "id": chapter_data["id"],
-                        "attributes": {
-                            "chapter": chapter_data["chapter"],
-                            "title": chapter_data.get("title", "No Title"),
-                        },
-                    }
-                )
-
-        return all_chapters
-
+        return data["data"]
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
-        print(f"Response content: {response.content}")
     except Exception as err:
         print(f"Other error occurred: {err}")
-    return []
 
 
 # Function to retrieve image URLs of a chapter by chapter ID
@@ -240,40 +214,21 @@ def main():
         print(f"No chapters found for '{title}'.")
         return
 
-    start_index = next(
-        (
-            i
-            for i, ch in enumerate(chapters)
-            if float(ch["attributes"]["chapter"]) >= start_chapter
-        ),
-        None,
-    )
-    end_index = next(
-        (
-            i
-            for i, ch in enumerate(chapters)
-            if float(ch["attributes"]["chapter"]) > end_chapter
-        ),
-        len(chapters),
-    )
-
-    if start_index is None or start_index >= len(chapters):
-        print("Invalid start chapter.")
+    if start_chapter < 1 or end_chapter < start_chapter or end_chapter > len(chapters):
+        print("Invalid chapter range.")
         return
 
-    for chapter in chapters[start_index:end_index]:
-        chapter_num = chapter["attributes"]["chapter"]
-        chapter_id = chapter["id"]
-        print(f"Downloading Chapter {chapter_num}...")
+    for i in range(start_chapter, end_chapter + 1):
+        chapter_id = chapters[i - 1]["id"]
+        print(f"Downloading Chapter {i}...")
         images = get_images(chapter_id)
-        progress_bar = tqdm(
-            total=len(images), desc=f"Chapter {chapter_num}", unit="image"
-        )
+        progress_bar = tqdm(total=len(images), desc=f"Chapter {i}", unit="image")
         save_images_to_pdf(
-            images, f"Chapter_{chapter_num}", title, progress_bar, lower_resolution
+            images, f"Chapter_{i}", title, progress_bar, lower_resolution
         )
         progress_bar.close()
-        print(f"Chapter {chapter_num} saved as PDF.")
+        print(f"Chapter {i} saved as PDF.")
 
 
-main()
+if __name__ == "__main__":
+    main()
