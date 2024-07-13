@@ -222,7 +222,7 @@ def main():
         chapter_id = chapters[i - 1]["id"]
         print(f"Downloading Chapter {i}...")
         images = get_images(chapter_id)
-        progress_bar = tqdm(total=len(images), desc=f"Chapter {i}", unit="image")
+        progress_bar = tqdm(total=len(images), desc=f"Chapter {i}", unit="image")  # type: ignore
         save_images_to_pdf(
             images, f"Chapter_{i}", title, progress_bar, lower_resolution
         )
